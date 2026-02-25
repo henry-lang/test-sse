@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SSE Test</title>
+  <style>
+    body { font-family: monospace; max-width: 600px; margin: 60px auto; background: #111; color: #eee; }
+    h1 { font-size: 1.2rem; color: #aaa; margin-bottom: 1.5rem; }
+    #words { display: flex; flex-wrap: wrap; gap: 8px; min-height: 100px; }
+    .word {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      padding: 4px 10px;
+      border-radius: 4px;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .word.visible { opacity: 1; transform: translateY(0); }
+    #status { margin-top: 1.5rem; color: #555; font-size: 0.85rem; }
+    button {
+      background: #2a2a2a;
+      color: #eee;
+      border: 1px solid #444;
+      padding: 8px 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: monospace;
+      margin-bottom: 1.5rem;
+    }
+    button:hover { background: #333; }
+    button:disabled { opacity: 0.4; cursor: default; }
+  </style>
+</head>
+<body>
+  <h1>SSE Word Stream</h1>
+  <button id="btn" onclick="start()">Connect</button>
+  <div id="words"></div>
+  <div id="status">idle</div>
+
+  <script>
+    let es = null;
+
+    function start() {
+      if (es) { es.close(); }
+
+      document.getElementById("words").innerHTML = "";
+      document.getElementById("status").textContent = "connecting…";
+      document.getElementById("btn").disabled = true;
+
+      es = new EventSource("http://localhost:8080/sse");
+
+      es.onmessage = (e) => {
+        const el = document.createElement("span");
+        el.className = "word";
+        el.textContent = e.data;
+        document.getElementById("words").appendChild(el);
+        requestAnimationFrame(() => el.classList.add("visible"));
+
+        const count = document.querySelectorAll(".word").length;
+        document.getElementById("status").textContent = `received ${count} / 50`;
+      };
+
+      es.addEventListener("done", () => {
+        es.close();
+        document.getElementById("status").textContent = "done — all 50 words received";
+        document.getElementById("btn").disabled = false;
+        document.getElementById("btn").textContent = "Reconnect";
+      });
+
+      es.onerror = () => {
+        document.getElementById("status").textContent = "error — is the server running?";
+        document.getElementById("btn").disabled = false;
+        es.close();
+      };
+    }
+  </script>
+</body>
+</html>
