@@ -31,7 +31,7 @@ class SSEHandler(BaseHTTPRequestHandler):
                 for word in words:
                     self.wfile.write(f"data: {word}\n\n".encode())
                     self.wfile.flush()
-                    time.sleep(0.25)
+                    time.sleep(0.1)
 
                 self.wfile.write(b"event: done\ndata: \n\n")
                 self.wfile.flush()
