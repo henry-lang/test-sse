@@ -1,6 +1,6 @@
 import time
 import random
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 WORDS = [
     "apple", "bridge", "castle", "dragon", "ember", "forest", "glacier", "harbor",
@@ -26,14 +26,17 @@ class SSEHandler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
 
-            words = random.sample(WORDS, 50)
-            for word in words:
-                self.wfile.write(f"data: {word}\n\n".encode())
-                self.wfile.flush()
-                time.sleep(0.25)
+            try:
+                words = random.sample(WORDS, 50)
+                for word in words:
+                    self.wfile.write(f"data: {word}\n\n".encode())
+                    self.wfile.flush()
+                    time.sleep(0.25)
 
-            self.wfile.write(b"event: done\ndata: \n\n")
-            self.wfile.flush()
+                self.wfile.write(b"event: done\ndata: \n\n")
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
         else:
             self.send_response(404)
             self.end_headers()
@@ -43,7 +46,7 @@ class SSEHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    server = HTTPServer(("0.0.0.0", 8080), SSEHandler)
+    server = ThreadingHTTPServer(("0.0.0.0", 8080), SSEHandler)
     print("SSE server running on http://localhost:8080")
     print("Connect to http://localhost:8080/sse")
     server.serve_forever()
